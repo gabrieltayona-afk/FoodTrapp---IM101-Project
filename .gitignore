@@ -1,1 +1,8 @@
-"*.tmp"  "*.bak"  "*.log" 
+# Temporary MySQL Workbench files
+*.tmp
+*.bak
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
