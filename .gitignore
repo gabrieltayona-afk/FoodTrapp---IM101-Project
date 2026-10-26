@@ -34,3 +34,6 @@ Thumbs.db
 # Misc / Temporary files
 *.tmp
 *.bak
+
+# Service URLs / connection strings with credentials
+service url.txt
