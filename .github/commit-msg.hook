@@ -1,0 +1,29 @@
+#!/bin/sh
+# commit-msg hook: enforces conventional commit prefix format
+# Place this file in .git/hooks/commit-msg and make it executable
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Allowed prefixes
+PATTERN="^(feat|fix|docs|refactor|test|chore|db|hotfix|style|perf|ci): .+"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "❌ COMMIT REJECTED — Invalid commit message format."
+  echo ""
+  echo "   Your message: \"$COMMIT_MSG\""
+  echo ""
+  echo "   Required format:  <prefix>: <description>"
+  echo "   Allowed prefixes: feat, fix, docs, refactor, test, chore, db, hotfix, style, perf, ci"
+  echo ""
+  echo "   ✅ Examples:"
+  echo "      feat: add POST /api/orders endpoint"
+  echo "      fix: correct syntax error in stored procedure"
+  echo "      db: add trigger for transaction history"
+  echo "      docs: update README setup instructions"
+  echo ""
+  exit 1
+fi
+
+exit 0
