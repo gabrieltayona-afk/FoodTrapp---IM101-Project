@@ -1,35 +1,36 @@
-# ── Dependencies ────────────────────────────────────────────
+# Dependencies
 node_modules/
 
-# ── Build output ─────────────────────────────────────────────
+# Build output
 dist/
 build/
 
-# ── Environment / secrets ────────────────────────────────────
+# Environment / secrets
 .env
 .env.local
 .env.*.local
 
-# ── Uploads (runtime data) ───────────────────────────────────
+# Uploads (runtime data)
 backend/uploads/
 
-# ── Database dumps (keep out of version control) ─────────────
+# Database dumps (keep out of version control)
 *.sql
 
-# ── SSL certificates ─────────────────────────────────────────
+# SSL certificates
 *.pem
 *.key
 *.crt
 
-# ── Logs ─────────────────────────────────────────────────────
+# Logs
 *.log
 logs/
 
-# ── OS / editor artifacts ────────────────────────────────────
+# OS / editor artifacts
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# ── Misc ─────────────────────────────────────────────────────
+# Misc / Temporary files
 *.tmp
+*.bak
