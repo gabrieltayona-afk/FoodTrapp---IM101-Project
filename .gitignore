@@ -1,39 +1,35 @@
 # Dependencies
 node_modules/
+*/node_modules/
 
-# Build output
+# Production build outputs
 dist/
-build/
+*/dist/
 
-# Environment / secrets
+# Environment files and credentials (CRITICAL: never commit secrets)
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+backend/.env
+frontend/.env
+!*.example
+!*.env.example
 
-# Uploads (runtime data)
-backend/uploads/
-
-# Database dumps (keep out of version control)
-*.sql
-
-# SSL certificates
+# Certificates & sensitive connection details
+ca.pem
 *.pem
-*.key
-*.crt
+service url.txt
+
+# Local uploads
+backend/uploads/
+uploads/
 
 # Logs
 *.log
-logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS / editor artifacts
+# System files
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-
-# Misc / Temporary files
-*.tmp
-*.bak
-
-# Service URLs / connection strings with credentials
-service url.txt

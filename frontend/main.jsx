@@ -14,11 +14,17 @@ import './style.css';
 const APP_NAME = 'Food Supply Network';
 const TOKEN_KEY = 'fsn_token';
 
+// Backend API URL: Read from environment variable (for Vercel/production) or fallback to localhost for development
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const BASE_URL = RAW_API_URL.replace(/\/+$/, '');
+const API_BASE = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+
 /* ─────────────────────── helpers ──────────────────────────────────── */
 async function request(path, token, options = {}) {
   let res;
+  const endpoint = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
   try {
-    res = await fetch('/api' + path, {
+    res = await fetch(endpoint, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +33,7 @@ async function request(path, token, options = {}) {
       },
     });
   } catch {
-    throw new Error('Unable to connect to backend server. Please verify it is running on port 3001.');
+    throw new Error(`Unable to connect to backend server at ${API_BASE}. Please verify it is running.`);
   }
 
   let data = {};
@@ -102,7 +108,7 @@ function Modal({ title, onClose, children, wide }) {
 }
 
 /* ══════════════════ AUTH PAGE ═══════════════════════════════════════ */
-function AuthPage({ onToken, initialError = '' }) {
+function AuthPage({ onToken }) {
   // modes: 'login' | 'signup' | 'verify' | 'verify_success' | 'forgot' | 'reset' | 'reset_success'
   const [mode,             setMode]             = useState('login');
   const [email,            setEmail]            = useState('');
@@ -114,7 +120,7 @@ function AuthPage({ onToken, initialError = '' }) {
   const [bizName,          setBizName]          = useState('');
   const [stallNum,         setStallNum]         = useState('');
   const [address,          setAddress]          = useState('');
-  const [error,            setError]            = useState(initialError);
+  const [error,            setError]            = useState('');
   const [info,             setInfo]             = useState('');
   const [busy,             setBusy]             = useState(false);
   const [fieldErrors,      setFieldErrors]      = useState({});
@@ -3187,9 +3193,9 @@ function App() {
   const [me,    setMe]    = useState(null);
   const [error, setError] = useState('');
 
-  const logout = useCallback((errMsg = '') => {
+  const logout = useCallback(() => {
     sessionStorage.removeItem(TOKEN_KEY);
-    setToken(''); setMe(null); setError(errMsg);
+    setToken(''); setMe(null); setError('');
   }, []);
 
   const loadMe = useCallback(async (authToken) => {
@@ -3197,7 +3203,8 @@ function App() {
       const u = await request('/me', authToken);
       setMe(u);
     } catch (e) {
-      logout(e.message || 'Session expired. Please sign in again.');
+      setError(e.message);
+      logout();
     }
   }, [logout]);
 
@@ -3206,10 +3213,10 @@ function App() {
     loadMe(token);
   }, [token, loadMe]);
 
-  const handleToken = (newToken) => { setError(''); setMe(null); setToken(newToken); };
+  const handleToken = (newToken) => { setMe(null); setToken(newToken); };
   const handleUpdateMe = (updatedUser) => { setMe(updatedUser); };
 
-  if (!token) return <AuthPage onToken={handleToken} initialError={error} />;
+  if (!token) return <AuthPage onToken={handleToken} />;
 
   if (!me) return (
     <main className="login-page">
