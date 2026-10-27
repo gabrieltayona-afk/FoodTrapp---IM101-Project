@@ -33,3 +33,13 @@ yarn-error.log*
 # System files
 .DS_Store
 Thumbs.db
+
+food_supply_network_backup.sql
+
+user_accounts_backup.json
+
+food_supply_network_backup_full.sql
+
+backend/set_passwords.sql
+
+backend/apply_test_passwords.js
