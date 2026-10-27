@@ -12,8 +12,25 @@ import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173' }));
+
+// Parse comma-separated origins from FRONTEND_ORIGIN (e.g. "https://app.vercel.app,http://localhost:5173")
+const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. mobile apps, curl, uptime monitors)
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 }));
@@ -22,8 +39,18 @@ const required = ['DB_HOST', 'DB_USER', 'DB_NAME', 'JWT_SECRET'];
 for (const key of required) if (!process.env[key]) throw new Error(`Missing ${key} in backend/.env`);
 if (process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must have at least 32 characters');
 
-const caPath = process.env.DB_CA_PATH;
-const sslConfig = caPath && fs.existsSync(caPath) ? { ca: fs.readFileSync(caPath), rejectUnauthorized: true } : false;
+// MySQL SSL Configuration:
+// Accepts CA certificate directly from DB_CA_CERT (PEM text in environment variable)
+// or falls back to DB_CA_PATH (file path for local development).
+let sslConfig = false;
+if (process.env.DB_CA_CERT) {
+  const certText = process.env.DB_CA_CERT.includes('\\n')
+    ? process.env.DB_CA_CERT.replace(/\\n/g, '\n')
+    : process.env.DB_CA_CERT;
+  sslConfig = { ca: certText, rejectUnauthorized: true };
+} else if (process.env.DB_CA_PATH && fs.existsSync(process.env.DB_CA_PATH)) {
+  sslConfig = { ca: fs.readFileSync(process.env.DB_CA_PATH), rejectUnauthorized: true };
+}
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST, port: Number(process.env.DB_PORT || 3306),
@@ -147,7 +174,11 @@ async function auth(req, res, next) {
   }
 }
 
-/* ── Health ────────────────────────────────────────────────────────── */
+/* ── Health (root & API) ───────────────────────────────────────────── */
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: Math.floor(process.uptime()), timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', async (_req, res, next) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'connected' }); } catch (e) { next(e); }
 });
@@ -489,7 +520,8 @@ app.post('/api/forgot-password', async (req, res, next) => {
       [user.UserID, normalizedEmail, resetToken]
     );
 
-    const resetLink = `${process.env.FRONTEND_ORIGIN || 'http://localhost:5173'}?reset_token=${resetToken}`;
+    const primaryOrigin = allowedOrigins[0] || 'http://localhost:5173';
+    const resetLink = `${primaryOrigin}?reset_token=${resetToken}`;
     console.log(`[PASSWORD RESET] Generated reset link for ${normalizedEmail}: ${resetLink}`);
 
     // Dispatch password reset email
@@ -1626,6 +1658,7 @@ app.use((err, req, res, _next) => {
   }
 });
 
-app.listen(Number(process.env.PORT || 3001), () =>
-  console.log('API ready on port ' + (process.env.PORT || 3001))
+const PORT = Number(process.env.PORT || 3001);
+app.listen(PORT, '0.0.0.0', () =>
+  console.log(`API ready on port ${PORT}`)
 );

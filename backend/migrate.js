@@ -1,14 +1,26 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import fs from 'node:fs';
 dotenv.config();
 
 async function runMigration() {
+  let sslConfig = false;
+  if (process.env.DB_CA_CERT) {
+    const certText = process.env.DB_CA_CERT.includes('\\n')
+      ? process.env.DB_CA_CERT.replace(/\\n/g, '\n')
+      : process.env.DB_CA_CERT;
+    sslConfig = { ca: certText, rejectUnauthorized: true };
+  } else if (process.env.DB_CA_PATH && fs.existsSync(process.env.DB_CA_PATH)) {
+    sslConfig = { ca: fs.readFileSync(process.env.DB_CA_PATH), rejectUnauthorized: true };
+  }
+
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '1234',
     database: process.env.DB_NAME || 'food_supply_network',
+    ssl: sslConfig,
   });
 
   console.log('Connected to database...');
